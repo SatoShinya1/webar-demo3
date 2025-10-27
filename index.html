@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ARアニメーション選択 (MindAR版)</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v7.0.0/dist/aframe-extras.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* (CSS... 変更なし) */
+    body, html { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; font-family: 'Inter', sans-serif; box-sizing: border-box; }
+    #ar-container, #selection-menu { width: 100%; height: 100%; margin: 0; padding: 0; }
+    a-scene[embedded] { width: 100% !important; height: 100% !important; position: absolute !important; top: 0 !important; left: 0 !important; margin: 0 !important; padding: 0 !important; z-index: 1; }
+    .a-canvas { width: 100% !important; height: 100% !important; position: absolute !important; top: 0 !important; left: 0 !important; margin: 0 !important; padding: 0 !important; z-index: 1; }
+    video { object-fit: cover !important; width: 100% !important; height: 100% !important; position: absolute !important; top: 0 !important; left: 0 !important; margin: 0 !important; padding: 0 !important; z-index: -1; }
+    #btn-back { z-index: 10 !important; }
+  </style>
+</head>
+<body class="bg-black">
+  
+    <div id="selection-menu" class="flex flex-col items-center justify-center p-8 space-y-6 bg-gray-100">
+    <h1 class="text-3xl font-bold text-gray-800 mb-4">ARアニメーションを選択</h1>
+    <button id="btn-left" data-type="left" class="w-full max-w-sm p-4 bg-blue-500 text-white rounded-lg shadow-md text-lg font-semibold hover:bg-blue-600 transition duration-200">左に行く</button>
+    <button id="btn-right" data-type="right" class="w-full max-w-sm p-4 bg-green-500 text-white rounded-lg shadow-md text-lg font-semibold hover:bg-green-600 transition duration-200">右に行く</button>
+    <button id="btn-approach" data-type="approach" class="w-full max-w-sm p-4 bg-yellow-500 text-white rounded-lg shadow-md text-lg font-semibold hover:bg-yellow-600 transition duration-200">近づく</button>
+    <button id="btn-away" data-type="away" class="w-full max-w-sm p-4 bg-red-500 text-white rounded-lg shadow-md text-lg font-semibold hover:bg-red-600 transition duration-200">遠ざかる</button>
+  </div>
+
+  <div id="ar-container" class="hidden relative">
+
+        <a-scene embedded
+        mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 1; uiScanning: yes; uiLoading: yes;"
+        vr-mode-ui="enabled: false"
+        device-orientation-permission-ui="enabled: false">
+      
+            <a-entity id="marker" mindar-image-target="targetIndex: 0">
+             </a-entity>
+            <a-entity camera></a-entity>
+    </a-scene>
+        <button id="btn-back" class="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 p-3 bg-gray-800 text-white rounded-lg shadow-lg hover:bg-gray-900 transition duration-200">
+      メニューに戻る
+    </button>
+    
+  </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // (JavaScript... 変更なし)
+      const menu = document.getElementById('selection-menu');
+      const arContainer = document.getElementById('ar-container');
+      const marker = document.getElementById('marker'); // id="marker"を持つa-entityが取得される
+      const backButton = document.getElementById('btn-back');
+      
+      const selectionButtons = document.querySelectorAll('#selection-menu button');
+
+      selectionButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          const animationType = button.getAttribute('data-type');
+          startAR(animationType);
+        });
+      });
+
+      backButton.addEventListener('click', () => {
+        showMenu();
+      });
+
+      function startAR(type) {
+        const existingModel = document.getElementById('current-model');
+        if (existingModel) {
+          marker.removeChild(existingModel);
+        }
+
+        const model = document.createElement('a-entity');
+        model.setAttribute('id', 'current-model');
+        model.setAttribute('gltf-model', 'bird3.glb'); 
+        
+        switch (type) {
+          case 'left':
+            model.setAttribute('rotation', '0 0 90');
+            model.setAttribute('scale', '3 3 3');
+            model.setAttribute('animation', {
+              property: 'position', from: '0 0 0', to: '-5 0 0', dur: 4000, dir: 'normal', loop: true
+            });
+            break;
+          case 'right':
+            model.setAttribute('rotation', '0 0 -90');
+            model.setAttribute('scale', '3 3 3');
+            model.setAttribute('animation', {
+              property: 'position', from: '0 0 0', to: '5 0 0', dur: 4000, dir: 'normal', loop: true
+            });
+            break;
+          case 'approach':
+            model.setAttribute('rotation', '0 0 0');
+            model.setAttribute('scale', '1 1 1'); 
+            model.setAttribute('animation', {
+              property: 'scale', from: '1 1 1', to: '10 10 10', dur: 15000, loop: false
+            });
+            break;
+          case 'away':
+            model.setAttribute('rotation', '0 0 180'); 
+            model.setAttribute('scale', '10 10 10'); 
+            model.setAttribute('animation', {
+              property: 'scale', from: '10 10 10', to: '1 1 1', dur: 20000, loop: false
+            });
+            break;
+        }
+
+        marker.appendChild(model);
+        menu.classList.add('hidden');
+        arContainer.classList.remove('hidden');
+        setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
+      }
+
+      function showMenu() {
+        arContainer.classList.add('hidden');
+        menu.classList.remove('hidden');
+
+        const existingModel = document.getElementById('current-model');
+        if (existingModel) {
+          marker.removeChild(existingModel);
+        }
+      }
+    });
+  </script>
+</body>
+</html>
